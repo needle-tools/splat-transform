@@ -1,0 +1,456 @@
+:root {
+    color-scheme: light dark;
+    font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    background: #0f141c;
+    color: #e8edf5;
+}
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    margin: 0;
+    background:
+        radial-gradient(circle at top left, rgba(95, 129, 255, 0.14), transparent 28rem),
+        radial-gradient(circle at top right, rgba(65, 214, 182, 0.12), transparent 24rem),
+        #0f141c;
+}
+
+button,
+input,
+select {
+    font: inherit;
+}
+
+.page {
+    min-height: 100vh;
+}
+
+.band {
+    width: 100%;
+}
+
+.content {
+    width: min(1100px, calc(100vw - 2rem));
+    margin: 0 auto;
+    padding: 1rem 0;
+}
+
+.header {
+    display: flex;
+    align-items: end;
+    justify-content: space-between;
+    gap: 1rem;
+    padding-top: 2rem;
+}
+
+h1,
+h2,
+p {
+    margin: 0;
+}
+
+h1 {
+    font-size: 2rem;
+    font-weight: 700;
+}
+
+h2 {
+    font-size: 1rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+}
+
+.sectionHeader {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-bottom: 0.75rem;
+}
+
+.sectionHeader h2 {
+    margin-bottom: 0;
+}
+
+.collapsiblePanel {
+    margin: 0;
+}
+
+.collapsibleSummary {
+    cursor: pointer;
+    list-style: none;
+}
+
+.collapsibleSummary::-webkit-details-marker {
+    display: none;
+}
+
+.collapsibleSummary::after {
+    content: "+";
+    color: #9fb3c8;
+    font-size: 1rem;
+    line-height: 1;
+    margin-left: auto;
+}
+
+.collapsiblePanel[open] .collapsibleSummary::after {
+    content: "-";
+}
+
+.collapsibleBodyHeader {
+    margin-top: 0.25rem;
+}
+
+.subtitle {
+    margin-top: 0.4rem;
+    color: #aab7c8;
+}
+
+.actions,
+.controls {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+    align-items: end;
+}
+
+label {
+    display: grid;
+    gap: 0.4rem;
+    min-width: 10rem;
+}
+
+label span,
+.eyebrow {
+    color: #8ea0b7;
+    font-size: 0.85rem;
+}
+
+input[type="text"],
+input[type="number"],
+select,
+button,
+.fileButton {
+    min-height: 2.75rem;
+    border-radius: 8px;
+    border: 1px solid rgba(173, 189, 214, 0.2);
+    background: rgba(18, 25, 35, 0.9);
+    color: inherit;
+    padding: 0.7rem 0.9rem;
+}
+
+button,
+.fileButton {
+    cursor: pointer;
+}
+
+button:hover,
+.fileButton:hover {
+    border-color: rgba(173, 189, 214, 0.4);
+}
+
+.primary {
+    background: #d7ecff;
+    border-color: #d7ecff;
+    color: #0f141c;
+    font-weight: 600;
+}
+
+.secondary:disabled {
+    cursor: default;
+    opacity: 0.55;
+}
+
+.fileButton {
+    display: inline-flex;
+    align-items: center;
+}
+
+.fileButton input {
+    display: none;
+}
+
+.statusRow,
+.columns,
+.progressStats {
+    display: grid;
+    gap: 1rem;
+}
+
+.statusRow {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.statusRow > div,
+.columns > div {
+    background: rgba(18, 25, 35, 0.68);
+    border: 1px solid rgba(173, 189, 214, 0.14);
+    border-radius: 8px;
+    padding: 1rem;
+    min-width: 0;
+}
+
+.columns {
+    grid-template-columns: minmax(0, 0.95fr) minmax(0, 1.05fr);
+    align-items: start;
+    padding-bottom: 2rem;
+}
+
+.progressCard {
+    background: rgba(18, 25, 35, 0.82);
+    border: 1px solid rgba(173, 189, 214, 0.14);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.progressHeader {
+    align-items: start;
+    margin-bottom: 0.9rem;
+}
+
+.progressStage,
+.progressPercent {
+    font-weight: 600;
+}
+
+.progressStage {
+    font-size: 1rem;
+}
+
+.progressPercent {
+    font-size: 1.1rem;
+    color: #d7ecff;
+}
+
+.progressTrack {
+    width: 100%;
+    height: 0.8rem;
+    border-radius: 999px;
+    overflow: hidden;
+    background: rgba(8, 12, 18, 0.72);
+    border: 1px solid rgba(173, 189, 214, 0.12);
+}
+
+.progressFill {
+    width: 0%;
+    height: 100%;
+    border-radius: inherit;
+    background: linear-gradient(90deg, #7ad1ff 0%, #74f0c8 100%);
+    transition: width 0.18s ease-out;
+}
+
+.progressDetail {
+    margin-top: 0.75rem;
+    min-height: 1.4rem;
+    color: #b9c7d9;
+}
+
+.progressStats {
+    margin-top: 1rem;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.progressStats > div {
+    background: rgba(8, 12, 18, 0.42);
+    border: 1px solid rgba(173, 189, 214, 0.1);
+    border-radius: 8px;
+    padding: 0.85rem 0.9rem;
+}
+
+.files {
+    list-style: none;
+    margin: 0;
+    padding: 0;
+    display: grid;
+    gap: 0.5rem;
+}
+
+.files li {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    padding: 0.8rem 0.9rem;
+    border-radius: 8px;
+    background: rgba(8, 12, 18, 0.48);
+}
+
+.fileMeta {
+    min-width: 0;
+}
+
+.fileName {
+    display: block;
+    overflow-wrap: anywhere;
+}
+
+.fileSize {
+    display: block;
+    color: #8ea0b7;
+    font-size: 0.85rem;
+    margin-top: 0.15rem;
+}
+
+.download {
+    white-space: nowrap;
+    color: #d7ecff;
+    text-decoration: none;
+}
+
+.download:hover {
+    text-decoration: underline;
+}
+
+.log {
+    margin: 0;
+    min-height: 22rem;
+    max-height: 34rem;
+    overflow: auto;
+    padding: 1rem;
+    border-radius: 8px;
+    background: #0a0f16;
+    border: 1px solid rgba(173, 189, 214, 0.12);
+    color: #d7dfeb;
+    line-height: 1.45;
+    white-space: pre-wrap;
+    overflow-wrap: anywhere;
+}
+
+.viewerCard {
+    background: rgba(18, 25, 35, 0.82);
+    border: 1px solid rgba(173, 189, 214, 0.14);
+    border-radius: 8px;
+    padding: 1rem;
+    margin-bottom: 2rem;
+}
+
+.viewerGrid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+    align-items: start;
+}
+
+.viewerHeader {
+    align-items: end;
+}
+
+.viewerSubtitle {
+    margin-top: 0.35rem;
+    color: #aab7c8;
+    font-size: 0.95rem;
+}
+
+.viewerModeLabel {
+    min-width: 9rem;
+}
+
+.viewerModeLabel select {
+    min-width: 8rem;
+}
+
+.viewerToggleLabel {
+    min-width: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.viewerToggleLabel input {
+    min-height: auto;
+    width: 1rem;
+    height: 1rem;
+    margin: 0;
+}
+
+.viewerNumberLabel {
+    min-width: auto;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.6rem;
+}
+
+.viewerNumberLabel input {
+    width: 5.5rem;
+    text-align: right;
+}
+
+.viewerSurface {
+    position: relative;
+    width: 100%;
+    aspect-ratio: 16 / 9;
+    min-height: 24rem;
+    border-radius: 8px;
+    overflow: hidden;
+    background: #0a0f16;
+    border: 1px solid rgba(173, 189, 214, 0.12);
+}
+
+.sparkCanvas {
+    display: block;
+    width: 100%;
+    height: 100%;
+}
+
+.playcanvasFrame {
+    display: block;
+    width: 100%;
+    height: 100%;
+    border: 0;
+    background: #0a0f16;
+}
+
+.viewerEmpty,
+.viewerError {
+    position: absolute;
+    left: 1rem;
+    bottom: 1rem;
+    max-width: min(32rem, calc(100% - 2rem));
+    padding: 0.85rem 1rem;
+    border-radius: 8px;
+    background: rgba(10, 15, 22, 0.82);
+    border: 1px solid rgba(173, 189, 214, 0.12);
+    color: #c9d6e6;
+    line-height: 1.4;
+}
+
+.viewerError {
+    background: rgba(120, 24, 24, 0.92);
+    border-color: rgba(255, 173, 173, 0.2);
+    color: #ffd7d7;
+}
+
+.viewerStats {
+    margin-top: 0.85rem;
+    color: #b9c7d9;
+    white-space: pre-line;
+    line-height: 1.45;
+}
+
+@media (max-width: 900px) {
+    .header,
+    .statusRow,
+    .columns,
+    .progressStats {
+        grid-template-columns: 1fr;
+        display: grid;
+    }
+
+    .header {
+        align-items: start;
+    }
+
+    .viewerHeader {
+        align-items: start;
+    }
+
+    .viewerGrid {
+        grid-template-columns: 1fr;
+    }
+
+    .viewerSurface {
+        min-height: 18rem;
+    }
+}

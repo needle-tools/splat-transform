@@ -28,6 +28,12 @@ type Options = {
     /** Approximate size of an LOD chunk in world units (meters). Default: 16 */
     lodChunkExtent: number;
 
+    /** Ratios used to auto-generate LOD levels before writing lod-meta.json. */
+    lodGenerateRatios?: number[];
+
+    /** Optional pre-decimate target count applied before auto-generating LOD levels. */
+    lodPreDecimateCount?: number;
+
     /** SPZ format version to write. Default: 4. */
     spzVersion?: 3 | 4;
 

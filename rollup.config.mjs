@@ -106,11 +106,37 @@ const cjs = {
         markWorkerBundled(),
         versionReplace(),
         typescript({
-            tsconfig: './tsconfig.json',
+            tsconfig: './tsconfig.browser.json',
             declaration: false,
             declarationDir: undefined
         }),
         resolve(),
+        json()
+    ],
+    cache: false
+};
+
+// Library build - browser-targeted ESM with bundled browser dependencies
+const browser = {
+    input: 'src/lib/index.ts',
+    output: {
+        dir: 'dist/browser',
+        format: 'esm',
+        sourcemap: true,
+        entryFileNames: 'index.mjs',
+        chunkFileNames: 'chunks/[name]-[hash].mjs'
+    },
+    plugins: [
+        versionReplace(),
+        typescript({
+            tsconfig: './tsconfig.json',
+            declaration: false,
+            declarationDir: undefined,
+            outDir: undefined
+        }),
+        resolve({
+            browser: true
+        }),
         json()
     ],
     cache: false
@@ -141,3 +167,4 @@ const cli = {
 };
 
 export default [worker, esm, cjs, cli];
+export default [worker, esm, cjs, browser, cli];

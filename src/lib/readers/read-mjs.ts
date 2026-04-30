@@ -20,7 +20,8 @@ type Generator = {
  * @ignore
  */
 const readMjs = async (moduleUrl: string, params: Param[]): Promise<DataTable> => {
-    const module = await import(moduleUrl);
+    // eslint-disable-next-line jsdoc/no-bad-blocks
+    const module = await import(/* @vite-ignore */ moduleUrl);
     if (!module) {
         throw new Error(`Failed to load module: ${moduleUrl}`);
     }

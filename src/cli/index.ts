@@ -133,6 +133,8 @@ const cliOptionsConfig = {
     'viewer-settings': { type: 'string', short: 'E', default: '' },
     'lod-chunk-count': { type: 'string', short: 'C', default: '512' },
     'lod-chunk-extent': { type: 'string', short: 'X', default: '16' },
+    'lod-ratios': { type: 'string', default: '' },
+    'lod-pre-decimate': { type: 'string', default: '' },
     'spz-version': { type: 'string', default: '4' },
     unbundled: { type: 'boolean', short: 'U', default: false },
     'voxel-params': { type: 'string', default: '' },
@@ -387,6 +389,8 @@ const parseArguments = async () => {
     }
 
     const collisionMesh = parseCollisionMesh(v['collision-mesh']);
+    const lodRatios = v['lod-ratios'].split(',').filter(v => !!v).map(parseNumber);
+    const lodPreDecimateCount = v['lod-pre-decimate'] ? parseInteger(v['lod-pre-decimate']) : undefined;
     const spzVersion = parseInteger(v['spz-version']);
     if (spzVersion !== 3 && spzVersion !== 4) {
         throw new Error(`Invalid spz-version value: ${v['spz-version']}. Must be 3 or 4.`);
@@ -493,6 +497,8 @@ const parseArguments = async () => {
         unbundled: v.unbundled,
         lodChunkCount: parseInteger(v['lod-chunk-count']),
         lodChunkExtent: parseInteger(v['lod-chunk-extent']),
+        lodGenerateRatios: lodRatios,
+        lodPreDecimateCount,
         spzVersion: spzVersion as 3 | 4,
         voxelResolution,
         opacityCutoff,
@@ -791,6 +797,8 @@ LCC / LCC2 INPUT (.lcc, .lcc2)
 LOD OUTPUT (lod-meta.json)
     -C, --lod-chunk-count  <n>              Approximate number of Gaussians per LOD chunk in K. Default: 512
     -X, --lod-chunk-extent <n>              Approximate size of an LOD chunk in world units (m). Default: 16
+        --lod-ratios       <r0,r1,...>      Auto-generate LOD levels from one source for lod-meta.json output
+        --lod-pre-decimate <n>              Pre-decimate once before auto-generating LOD levels
 
 VOXEL OUTPUT (.voxel.json)
         --voxel-params     [size,opacity]   Voxel size and opacity threshold for .voxel.json. Default: 0.05,0.1
@@ -837,6 +845,9 @@ EXAMPLES
 
     # Generate voxel collision data
     splat-transform input.ply --filter-cluster output.voxel.json
+
+    # Auto-generate LOD levels from one PLY, with an optional pre-decimate
+    splat-transform --lod-ratios 1,0.5,0.25,0.125 --lod-pre-decimate 1000000 input.ply output/lod-meta.json
 
     More examples: https://github.com/playcanvas/splat-transform#examples
 `;

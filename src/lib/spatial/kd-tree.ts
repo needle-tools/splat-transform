@@ -148,13 +148,53 @@ class KdTree {
         }
         k = Math.min(k, this.centroids.numRows);
 
+        const heapDist = new Float32Array(k);
+        const heapIdx = new Int32Array(k);
+        const heapSize = this.findKNearestUnsorted(point, k, heapIdx, heapDist, filterFunc);
+
+        const resultIndices = new Int32Array(heapSize);
+        const resultDist = new Float32Array(heapSize);
+        for (let i = 0; i < heapSize; i++) {
+            resultIndices[i] = heapIdx[i];
+            resultDist[i] = heapDist[i];
+        }
+
+        // Simple insertion sort by distance (k is small)
+        for (let i = 1; i < heapSize; i++) {
+            const d = resultDist[i];
+            const idx = resultIndices[i];
+            let j = i - 1;
+            while (j >= 0 && resultDist[j] > d) {
+                resultDist[j + 1] = resultDist[j];
+                resultIndices[j + 1] = resultIndices[j];
+                j--;
+            }
+            resultDist[j + 1] = d;
+            resultIndices[j + 1] = idx;
+        }
+
+        return { indices: resultIndices, distances: resultDist };
+    }
+
+    findKNearestUnsorted(
+        point: Float32Array,
+        k: number,
+        heapIdx: Int32Array,
+        heapDist: Float32Array,
+        filterFunc?: (index: number) => boolean
+    ) {
+        if (k <= 0) {
+            return 0;
+        }
+        k = Math.min(k, this.centroids.numRows, heapIdx.length, heapDist.length);
+
         const colData = this.colData;
         const numCols = colData.length;
 
         // Bounded max-heap: stores (distance, index) pairs sorted so the
         // farthest element is at position 0, enabling O(1) pruning bound.
-        const heapDist = new Float32Array(k).fill(Infinity);
-        const heapIdx = new Int32Array(k).fill(-1);
+        heapDist.fill(Infinity, 0, k);
+        heapIdx.fill(-1, 0, k);
         let heapSize = 0;
 
         const heapPush = (dist: number, idx: number) => {
@@ -219,29 +259,7 @@ class KdTree {
 
         recurse(this.root, 0);
 
-        // Extract results sorted by distance (ascending)
-        const resultIndices = new Int32Array(heapSize);
-        const resultDist = new Float32Array(heapSize);
-        for (let i = 0; i < heapSize; i++) {
-            resultIndices[i] = heapIdx[i];
-            resultDist[i] = heapDist[i];
-        }
-
-        // Simple insertion sort by distance (k is small)
-        for (let i = 1; i < heapSize; i++) {
-            const d = resultDist[i];
-            const idx = resultIndices[i];
-            let j = i - 1;
-            while (j >= 0 && resultDist[j] > d) {
-                resultDist[j + 1] = resultDist[j];
-                resultIndices[j + 1] = resultIndices[j];
-                j--;
-            }
-            resultDist[j + 1] = d;
-            resultIndices[j + 1] = idx;
-        }
-
-        return { indices: resultIndices, distances: resultDist };
+        return heapSize;
     }
 
     /**

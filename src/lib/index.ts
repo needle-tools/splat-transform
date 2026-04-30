@@ -14,6 +14,8 @@ export { readFile, getInputFormat } from './read';
 export type { InputFormat, ReadFileOptions } from './read';
 export { writeFile, getOutputFormat } from './write';
 export type { OutputFormat, WriteOptions } from './write';
+export { estimateLodDecimateIterations, generateLodDataTable, normalizeLodRatios } from './lod-generation';
+export type { LodGenerationOptions, LodGenerationResult } from './lod-generation';
 
 // Processing
 export { processDataTable } from './process';

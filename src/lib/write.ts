@@ -1,5 +1,6 @@
 import { DataTable } from './data-table';
 import { type FileSystem } from './io/write';
+import { generateLodDataTable } from './lod-generation';
 import { type DeviceCreator, type Options } from './types';
 import { writeCompressedPly, writeCsv, writeGlb, writeHtml, writeImage, writeLod, writePly, writeSog, writeSpz, writeVoxel } from './writers';
 
@@ -105,7 +106,8 @@ const getOutputFormat = (filename: string, options: Options): OutputFormat => {
  * ```
  */
 const writeFile = async (writeOptions: WriteOptions, fs: FileSystem) => {
-    const { filename, outputFormat, dataTable, envDataTable, options, createDevice } = writeOptions;
+    const { filename, outputFormat, envDataTable, options, createDevice } = writeOptions;
+    let { dataTable } = writeOptions;
 
     // Each writer is responsible for opening its own `Writing` log group and
     // emitting `filename (size)` info entries per output file.
@@ -124,6 +126,13 @@ const writeFile = async (writeOptions: WriteOptions, fs: FileSystem) => {
             }, fs);
             break;
         case 'lod':
+            if (!dataTable.hasColumn('lod') && options.lodGenerateRatios && options.lodGenerateRatios.length > 0) {
+                ({ dataTable } = await generateLodDataTable({
+                    source: dataTable,
+                    ratios: options.lodGenerateRatios,
+                    preDecimateCount: options.lodPreDecimateCount ?? null
+                }));
+            }
             await writeLod({
                 filename,
                 dataTable,
