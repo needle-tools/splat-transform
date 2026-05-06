@@ -83,6 +83,10 @@ const transferFiles = (files) => {
     return { payload, transfers };
 };
 
+const collectOutputFiles = (outputFs) => [...outputFs.results.entries()]
+    .map(([name, bytes]) => ({ name, bytes }))
+    .sort((a, b) => a.name.localeCompare(b.name));
+
 self.onmessage = async ({ data }) => {
     const { requestId, type } = data;
 
@@ -124,9 +128,7 @@ self.onmessage = async ({ data }) => {
                 options
             }, outputFs);
 
-            const files = [...outputFs.results.entries()]
-                .map(([fileName, bytes]) => ({ name: fileName, bytes }))
-                .sort((a, b) => a.name.localeCompare(b.name));
+            const files = collectOutputFiles(outputFs);
 
             const { payload, transfers } = transferFiles(files);
             self.postMessage({
@@ -136,6 +138,49 @@ self.onmessage = async ({ data }) => {
                 sourceRows: table.numRows,
                 workingRows: generation.workingSource.numRows,
                 outputRows: generation.dataTable.numRows,
+                files: payload
+            }, { transfer: transfers });
+            return;
+        }
+
+        if (type === 'convert-source') {
+            const { name, table } = await loadSourceTable(data.source);
+            const outputFs = new MemoryFileSystem();
+            const options = {
+                ...readOptions,
+                ...data.options
+            };
+
+            let dataTable = table;
+            let workingRows = null;
+
+            if (data.outputFormat === 'lod' && !dataTable.hasColumn('lod')) {
+                const generation = await generateLodDataTable({
+                    source: table,
+                    ratios: options.lodGenerateRatios ?? [],
+                    preDecimateCount: options.lodPreDecimateCount ?? null
+                });
+                dataTable = generation.dataTable;
+                workingRows = generation.workingSource.numRows;
+            }
+
+            await writeFile({
+                filename: data.outputFilename,
+                outputFormat: data.outputFormat,
+                dataTable,
+                options
+            }, outputFs);
+
+            const files = collectOutputFiles(outputFs);
+            const { payload, transfers } = transferFiles(files);
+            self.postMessage({
+                type: 'conversion-complete',
+                requestId,
+                sourceName: name,
+                sourceRows: table.numRows,
+                workingRows,
+                outputFilename: data.outputFilename,
+                outputFormat: data.outputFormat,
                 files: payload
             }, { transfer: transfers });
             return;

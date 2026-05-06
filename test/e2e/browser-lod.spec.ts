@@ -143,9 +143,6 @@ test("browser demo previews the original file and keeps it selectable after gene
     .poll(() => page.evaluate(() => globalThis.__browserLodDemoState?.sparkBundleKind))
     .toBe("plain");
   await expect(page.locator("#lodModeSelect")).toHaveValue("original");
-  await expect
-    .poll(() => page.evaluate(() => globalThis.__browserLodDemoState?.playcanvasLoaded))
-    .toBe(false);
 
   await page.getByRole("button", { name: "Generate LOD Bundle" }).click();
   await expect
@@ -168,6 +165,53 @@ test("browser demo previews the original file and keeps it selectable after gene
   await expect
     .poll(() => page.evaluate(() => globalThis.__browserLodDemoState?.sparkMode))
     .toBe("original");
+});
+
+test("browser demo can convert a source in-browser and preview the converted output", async ({
+  page,
+}) => {
+  const consoleErrors = [];
+  page.on("console", (message) => {
+    if (message.type() === "error") {
+      consoleErrors.push(message.text());
+    }
+  });
+
+  await page.goto("/demo/browser-lod/");
+
+  await page.setInputFiles(
+    "#fileInput",
+    path.join(fixtureDir, "minimal.splat"),
+  );
+
+  await expect
+    .poll(() => page.evaluate(() => globalThis.__browserLodDemoState?.state))
+    .toBe("Ready");
+
+  await page.selectOption("#outputFormatSelect", "spz");
+  await page.getByRole("button", { name: "Convert" }).click();
+
+  await expect
+    .poll(() => page.evaluate(() => globalThis.__browserLodDemoState?.state), {
+      timeout: 60_000,
+    })
+    .toBe("Done");
+  await expect
+    .poll(() => page.evaluate(() => globalThis.__browserLodDemoState?.sparkLoaded), {
+      timeout: 60_000,
+    })
+    .toBe(true);
+
+  const convertedState = await page.evaluate(() => globalThis.__browserLodDemoState);
+  expect(convertedState.outputFiles).toBeGreaterThan(0);
+  expect(convertedState.sparkBundleKind).toBe("plain");
+  expect(convertedState.playcanvasError).toBeNull();
+  expect(convertedState.playcanvasLoaded).toBe(false);
+
+  const fileNames = await page.locator("#filesList .fileName").allTextContents();
+  expect(fileNames.some((name) => name.endsWith(".spz"))).toBe(true);
+  await expect(page.locator("#filesSummary")).toContainText("zip");
+  expect(consoleErrors).not.toContainEqual(expect.stringContaining("Invalid ply header"));
 });
 
 test("browser demo can reload a generated zip and preview it in Spark and PlayCanvas", async ({

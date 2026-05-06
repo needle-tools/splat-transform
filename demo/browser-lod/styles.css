@@ -74,6 +74,20 @@ h2 {
     margin-bottom: 0;
 }
 
+.sectionHeaderActions {
+    display: flex;
+    align-items: center;
+    justify-content: end;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+}
+
+.sectionMeta {
+    color: #8ea0b7;
+    font-size: 0.9rem;
+    text-align: right;
+}
+
 .collapsiblePanel {
     margin: 0;
 }
@@ -106,6 +120,42 @@ h2 {
 .subtitle {
     margin-top: 0.4rem;
     color: #aab7c8;
+}
+
+.viewerStack {
+    display: grid;
+    gap: 1rem;
+}
+
+.viewerDropZone {
+    display: grid;
+    gap: 0.45rem;
+    padding: 1rem 1.1rem;
+    border-radius: 8px;
+    border: 1px dashed rgba(122, 209, 255, 0.35);
+    background: rgba(18, 25, 35, 0.62);
+    cursor: pointer;
+    transition: border-color 0.18s ease, background 0.18s ease, transform 0.18s ease;
+}
+
+.viewerDropZone:hover,
+.viewerDropZone.isActive {
+    border-color: rgba(122, 209, 255, 0.7);
+    background: rgba(23, 32, 45, 0.82);
+}
+
+.viewerDropZone.isActive {
+    transform: translateY(-1px);
+}
+
+.viewerDropTitle {
+    font-size: 1rem;
+    font-weight: 600;
+}
+
+.viewerDropSubtitle {
+    color: #aab7c8;
+    line-height: 1.45;
 }
 
 .actions,
@@ -198,6 +248,50 @@ button:hover,
     padding-bottom: 2rem;
 }
 
+.toolsGrid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.toolCard {
+    background: rgba(18, 25, 35, 0.82);
+    border: 1px solid rgba(173, 189, 214, 0.14);
+    border-radius: 8px;
+    padding: 1rem;
+}
+
+.toolHint {
+    margin-top: 0.85rem;
+    color: #b9c7d9;
+    line-height: 1.45;
+}
+
+.formatOptionsSummary {
+    min-width: 15rem;
+    padding: 0.1rem 0;
+}
+
+.formatIdentity {
+    min-width: 15rem;
+    padding: 0.1rem 0;
+}
+
+.formatIdentityValue {
+    margin-top: 0.35rem;
+    color: #d7dfeb;
+    line-height: 1.45;
+}
+
+.formatOptionsList {
+    margin: 0.35rem 0 0;
+    padding-left: 1rem;
+    color: #b9c7d9;
+    line-height: 1.45;
+}
+
+.formatOptionsList li + li {
+    margin-top: 0.2rem;
+}
+
 .progressCard {
     background: rgba(18, 25, 35, 0.82);
     border: 1px solid rgba(173, 189, 214, 0.14);
@@ -208,6 +302,12 @@ button:hover,
 .progressHeader {
     align-items: start;
     margin-bottom: 0.9rem;
+}
+
+.progressStageRow {
+    display: flex;
+    align-items: center;
+    gap: 0.55rem;
 }
 
 .progressStage,
@@ -222,6 +322,15 @@ button:hover,
 .progressPercent {
     font-size: 1.1rem;
     color: #d7ecff;
+}
+
+.progressSpinner {
+    width: 0.95rem;
+    height: 0.95rem;
+    border-radius: 999px;
+    border: 2px solid rgba(122, 209, 255, 0.28);
+    border-top-color: #7ad1ff;
+    animation: spin 0.7s linear infinite;
 }
 
 .progressTrack {
@@ -303,6 +412,10 @@ button:hover,
     text-decoration: underline;
 }
 
+.viewerDropZone[aria-busy="true"] {
+    cursor: progress;
+}
+
 .log {
     margin: 0;
     min-height: 22rem;
@@ -324,6 +437,10 @@ button:hover,
     border-radius: 8px;
     padding: 1rem;
     margin-bottom: 2rem;
+}
+
+.viewerCardWide {
+    margin-bottom: 0;
 }
 
 .viewerGrid {
@@ -452,5 +569,15 @@ button:hover,
 
     .viewerSurface {
         min-height: 18rem;
+    }
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+
+    to {
+        transform: rotate(360deg);
     }
 }

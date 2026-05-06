@@ -13,7 +13,7 @@
                 <header class="header">
                     <div>
                         <h1>Browser LOD Demo</h1>
-                        <p class="subtitle">Client-side `lod-meta.json` generation with `@playcanvas/splat-transform`.</p>
+                        <p class="subtitle">Preview, convert, and generate client-side bundles with `@playcanvas/splat-transform`.</p>
                     </div>
                     <div class="actions">
                         <button id="sampleButton" type="button">Load Grid Sample</button>
@@ -27,48 +27,137 @@
         </section>
 
         <section class="band">
-            <div class="content controls">
-                <label>
-                    <span>LOD ratios</span>
-                    <input id="ratiosInput" type="text" value="1,0.5,0.25,0.125">
-                </label>
-                <label>
-                    <span>SH iterations</span>
-                    <input id="iterationsInput" type="number" min="1" max="64" value="10">
-                </label>
-                <label>
-                    <span>Chunk size (K)</span>
-                    <input id="chunkCountInput" type="number" min="1" value="512">
-                </label>
-                <label>
-                    <span>Chunk extent (m)</span>
-                    <input id="chunkExtentInput" type="number" min="1" value="16">
-                </label>
-                <label>
-                    <span>Pre-decimate to</span>
-                    <input id="preDecimateInput" type="number" min="0" placeholder="disabled">
-                </label>
-                <button id="runButton" type="button" class="primary">Generate LOD Bundle</button>
+            <div class="content viewerStack">
+                <div id="viewerDropZone" class="viewerDropZone" role="button" tabindex="0" aria-label="Drop a splat file here to preview it">
+                    <div class="viewerDropTitle">Drop a source or bundle here</div>
+                    <div class="viewerDropSubtitle">Preview `.ply`, `.spz`, `.splat`, `.ksplat`, `.sog`, or `.zip` directly, then convert or generate bundles below.</div>
+                </div>
+
+                <div class="viewerCard viewerCardWide">
+                    <div class="statusRow">
+                        <div>
+                            <div class="eyebrow">Source</div>
+                            <div id="sourceValue">None</div>
+                        </div>
+                        <div>
+                            <div class="eyebrow">Rows</div>
+                            <div id="rowsValue">-</div>
+                        </div>
+                        <div>
+                            <div class="eyebrow">Output</div>
+                            <div id="outputValue">-</div>
+                        </div>
+                        <div>
+                            <div class="eyebrow">State</div>
+                            <div id="stateValue">Idle</div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="viewerGrid">
+                    <div class="viewerCard">
+                        <div class="sectionHeader viewerHeader">
+                            <div>
+                                <h2>Spark Preview</h2>
+                            </div>
+                            <label class="viewerModeLabel" for="lodModeSelect">
+                                <span>LOD mode</span>
+                                <select id="lodModeSelect" disabled>
+                                    <option value="original">Original</option>
+                                </select>
+                            </label>
+                            <label class="viewerToggleLabel" for="lodDebugCheckbox">
+                                <span>Color by LOD</span>
+                                <input id="lodDebugCheckbox" type="checkbox" disabled>
+                            </label>
+                            <label class="viewerNumberLabel" for="lodBaseDistanceInput">
+                                <span>Base dist</span>
+                                <input id="lodBaseDistanceInput" type="number" min="0.1" step="0.1" value="5" disabled>
+                            </label>
+                            <label class="viewerNumberLabel" for="lodMultiplierInput">
+                                <span>Multiplier</span>
+                                <input id="lodMultiplierInput" type="number" min="1.2" step="0.1" value="3" disabled>
+                            </label>
+                        </div>
+                        <div class="viewerSurface">
+                            <canvas id="sparkCanvas" class="sparkCanvas"></canvas>
+                            <div id="viewerEmpty" class="viewerEmpty"></div>
+                            <div id="viewerError" class="viewerError" hidden></div>
+                        </div>
+                        <div id="viewerStats" class="viewerStats"></div>
+                    </div>
+                    <div class="viewerCard">
+                        <div class="sectionHeader viewerHeader">
+                            <div>
+                                <h2>PlayCanvas Preview</h2>
+                            </div>
+                        </div>
+                        <div class="viewerSurface">
+                            <iframe id="playcanvasFrame" class="playcanvasFrame" title="PlayCanvas Preview"></iframe>
+                        </div>
+                        <div id="playcanvasStatus" class="viewerStats"></div>
+                    </div>
+                </div>
             </div>
         </section>
 
         <section class="band">
-            <div class="content statusRow">
-                <div>
-                    <div class="eyebrow">Source</div>
-                    <div id="sourceValue">None</div>
+            <div class="content columns toolsGrid">
+                <div class="toolCard">
+                    <div class="sectionHeader">
+                        <h2>Convert</h2>
+                    </div>
+                    <div class="controls">
+                        <label>
+                            <span>Output format</span>
+                            <select id="outputFormatSelect"></select>
+                        </label>
+                        <div class="formatIdentity" id="formatIdentity">
+                            <div class="eyebrow">Format family</div>
+                            <div id="formatIdentityValue" class="formatIdentityValue">Pick an output format.</div>
+                        </div>
+                        <label id="spzVersionLabel">
+                            <span>SPZ version (.spz only)</span>
+                            <select id="spzVersionSelect">
+                                <option value="4">4</option>
+                                <option value="3">3</option>
+                            </select>
+                        </label>
+                        <div class="formatOptionsSummary" id="formatOptionsSummary">
+                            <div class="eyebrow">Format settings</div>
+                            <ul id="formatOptionsList" class="formatOptionsList"></ul>
+                        </div>
+                        <button id="convertButton" type="button" class="secondary">Convert</button>
+                    </div>
+                    <p id="conversionHint" class="toolHint">Pick a source to convert it, preview the output when possible, and download the result below.</p>
                 </div>
-                <div>
-                    <div class="eyebrow">Rows</div>
-                    <div id="rowsValue">-</div>
-                </div>
-                <div>
-                    <div class="eyebrow">Output</div>
-                    <div id="outputValue">-</div>
-                </div>
-                <div>
-                    <div class="eyebrow">State</div>
-                    <div id="stateValue">Idle</div>
+                <div class="toolCard">
+                    <div class="sectionHeader">
+                        <h2>Generate LOD Bundle</h2>
+                    </div>
+                    <div class="controls">
+                        <label>
+                            <span>LOD ratios</span>
+                            <input id="ratiosInput" type="text" value="1,0.5,0.25,0.125">
+                        </label>
+                        <label>
+                            <span>SH iterations</span>
+                            <input id="iterationsInput" type="number" min="1" max="64" value="10">
+                        </label>
+                        <label>
+                            <span>Chunk size (K)</span>
+                            <input id="chunkCountInput" type="number" min="1" value="512">
+                        </label>
+                        <label>
+                            <span>Chunk extent (m)</span>
+                            <input id="chunkExtentInput" type="number" min="1" value="16">
+                        </label>
+                        <label>
+                            <span>Pre-decimate to</span>
+                            <input id="preDecimateInput" type="number" min="0" placeholder="disabled">
+                        </label>
+                        <button id="runButton" type="button" class="primary">Generate LOD Bundle</button>
+                    </div>
                 </div>
             </div>
         </section>
@@ -79,7 +168,10 @@
                     <div class="sectionHeader progressHeader">
                         <div>
                             <div class="eyebrow">Run Progress</div>
-                            <div id="progressStage" class="progressStage">Idle</div>
+                            <div class="progressStageRow">
+                                <div id="progressSpinner" class="progressSpinner" hidden aria-hidden="true"></div>
+                                <div id="progressStage" class="progressStage">Idle</div>
+                            </div>
                         </div>
                         <div id="progressPercent" class="progressPercent">0%</div>
                     </div>
@@ -109,8 +201,11 @@
             <div class="content columns">
                 <div>
                     <div class="sectionHeader">
-                        <h2>Generated Files</h2>
-                        <button id="zipButton" type="button" class="secondary" disabled>Download Zip</button>
+                        <h2>Output Files</h2>
+                        <div class="sectionHeaderActions">
+                            <div id="filesSummary" class="sectionMeta">No files generated yet.</div>
+                            <button id="zipButton" type="button" class="secondary" disabled>Download Zip</button>
+                        </div>
                     </div>
                     <details class="collapsiblePanel">
                         <summary class="sectionHeader collapsibleSummary">
@@ -126,53 +221,6 @@
                         </summary>
                         <pre id="log" class="log"></pre>
                     </details>
-                </div>
-            </div>
-        </section>
-
-        <section class="band">
-            <div class="content viewerGrid">
-                    <div class="viewerCard">
-                        <div class="sectionHeader viewerHeader">
-                            <div>
-                                <h2>Spark Preview</h2>
-                            </div>
-                        <label class="viewerModeLabel" for="lodModeSelect">
-                            <span>LOD mode</span>
-                            <select id="lodModeSelect" disabled>
-                                <option value="original">Original</option>
-                            </select>
-                        </label>
-                        <label class="viewerToggleLabel" for="lodDebugCheckbox">
-                            <span>Color by LOD</span>
-                            <input id="lodDebugCheckbox" type="checkbox" disabled>
-                        </label>
-                        <label class="viewerNumberLabel" for="lodBaseDistanceInput">
-                            <span>Base dist</span>
-                            <input id="lodBaseDistanceInput" type="number" min="0.1" step="0.1" value="5" disabled>
-                        </label>
-                        <label class="viewerNumberLabel" for="lodMultiplierInput">
-                            <span>Multiplier</span>
-                            <input id="lodMultiplierInput" type="number" min="1.2" step="0.1" value="3" disabled>
-                        </label>
-                    </div>
-                    <div class="viewerSurface">
-                        <canvas id="sparkCanvas" class="sparkCanvas"></canvas>
-                        <div id="viewerEmpty" class="viewerEmpty"></div>
-                        <div id="viewerError" class="viewerError" hidden></div>
-                    </div>
-                    <div id="viewerStats" class="viewerStats"></div>
-                </div>
-                <div class="viewerCard">
-                    <div class="sectionHeader viewerHeader">
-                        <div>
-                            <h2>PlayCanvas Preview</h2>
-                        </div>
-                    </div>
-                    <div class="viewerSurface">
-                        <iframe id="playcanvasFrame" class="playcanvasFrame" title="PlayCanvas Preview"></iframe>
-                    </div>
-                    <div id="playcanvasStatus" class="viewerStats"></div>
                 </div>
             </div>
         </section>

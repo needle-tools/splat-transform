@@ -276,30 +276,33 @@ const createPlayCanvasPreview = ({
     globalThis.addEventListener("message", handleMessage);
     syncState();
 
+    const loadContentFiles = async (files, entryName) => {
+        clearBundle();
+        activeBundle = createBlobBackedBundle(files);
+
+        activeToken += 1;
+        state.loaded = false;
+        state.bundlePath = normalizePath(entryName);
+        state.error = null;
+        syncState();
+
+        const contentUrl = activeBundle.buildUrlForEntry(entryName);
+        const contentName = normalizePath(entryName).split("/").pop();
+        iframe.srcdoc = buildSrcDoc(
+            contentUrl,
+            contentName,
+            activeBundle.getVirtualNameEntries(),
+            activeToken,
+        );
+    };
+
     return {
         async loadBundleFiles(files) {
             const bundlePath = findLodMetaPath(files);
             if (!bundlePath) {
                 throw new Error("Could not find lod-meta.json in generated files.");
             }
-
-            clearBundle();
-            activeBundle = createBlobBackedBundle(files);
-
-            activeToken += 1;
-            state.loaded = false;
-            state.bundlePath = bundlePath;
-            state.error = null;
-            syncState();
-
-            const contentUrl = activeBundle.buildUrlForEntry(bundlePath);
-            const contentName = normalizePath(bundlePath).split("/").pop();
-            iframe.srcdoc = buildSrcDoc(
-                contentUrl,
-                contentName,
-                activeBundle.getVirtualNameEntries(),
-                activeToken,
-            );
+            await loadContentFiles(files, bundlePath);
         },
 
         async loadBundleZip(bytes) {
@@ -309,6 +312,17 @@ const createPlayCanvasPreview = ({
                 bytes: fileBytes
             }));
             await this.loadBundleFiles(files);
+        },
+
+        async loadAssetFiles(files, entryName) {
+            await loadContentFiles(files, entryName);
+        },
+
+        async loadFileBytes(bytes, name) {
+            await loadContentFiles([{
+                name,
+                bytes
+            }], name);
         },
 
         clear() {

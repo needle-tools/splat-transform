@@ -1,6 +1,7 @@
 import { unzipSync, zipSync } from "fflate";
 import {
     estimateLodDecimateIterations,
+    getOutputFormat,
     normalizeLodRatios,
     version
 } from "./splat-transform-browser.mjs";
@@ -11,10 +12,13 @@ const sourceValue = document.querySelector('#sourceValue');
 const rowsValue = document.querySelector('#rowsValue');
 const outputValue = document.querySelector('#outputValue');
 const stateValue = document.querySelector('#stateValue');
+const viewerDropZone = document.querySelector('#viewerDropZone');
 const filesList = document.querySelector('#filesList');
+const filesSummary = document.querySelector('#filesSummary');
 const logEl = document.querySelector('#log');
 const zipButton = document.querySelector('#zipButton');
 const progressStage = document.querySelector('#progressStage');
+const progressSpinner = document.querySelector('#progressSpinner');
 const progressPercent = document.querySelector('#progressPercent');
 const progressFill = document.querySelector('#progressFill');
 const progressDetail = document.querySelector('#progressDetail');
@@ -26,6 +30,13 @@ const iterationsInput = document.querySelector('#iterationsInput');
 const chunkCountInput = document.querySelector('#chunkCountInput');
 const chunkExtentInput = document.querySelector('#chunkExtentInput');
 const preDecimateInput = document.querySelector('#preDecimateInput');
+const outputFormatSelect = document.querySelector('#outputFormatSelect');
+const formatIdentityValue = document.querySelector('#formatIdentityValue');
+const spzVersionLabel = document.querySelector('#spzVersionLabel');
+const spzVersionSelect = document.querySelector('#spzVersionSelect');
+const formatOptionsList = document.querySelector('#formatOptionsList');
+const convertButton = document.querySelector('#convertButton');
+const conversionHint = document.querySelector('#conversionHint');
 const fileInput = document.querySelector('#fileInput');
 const sampleButton = document.querySelector('#sampleButton');
 const runButton = document.querySelector('#runButton');
@@ -43,6 +54,106 @@ const playcanvasStatus = document.querySelector('#playcanvasStatus');
 const worker = new Worker(new URL('./worker.mjs', import.meta.url), { type: 'module' });
 let nextRequestId = 1;
 const pendingRequests = new Map();
+
+const outputTargets = [
+    {
+        key: 'ply',
+        label: '.ply',
+        family: 'Single-file interchange format',
+        buildFilename: (stem) => `browser-output/${stem}.ply`,
+        preview: 'plain',
+        supportText: 'Previews in Spark and PlayCanvas.',
+        optionLabels: ['No extra format options.']
+    },
+    {
+        key: 'compressed-ply',
+        label: '.compressed.ply',
+        family: 'Single-file interchange format',
+        buildFilename: (stem) => `browser-output/${stem}.compressed.ply`,
+        preview: 'plain',
+        supportText: 'Previews in Spark and PlayCanvas.',
+        optionLabels: ['No extra format options.']
+    },
+    {
+        key: 'spz',
+        label: '.spz',
+        family: 'Single-file SPZ format',
+        buildFilename: (stem) => `browser-output/${stem}.spz`,
+        preview: 'plain',
+        supportText: 'Previews in Spark directly. PlayCanvas does not preview plain SPZ in this demo.',
+        optionLabels: ['SPZ version']
+    },
+    {
+        key: 'sog-bundle',
+        label: '.sog',
+        family: 'Single-file SOG format',
+        buildFilename: (stem) => `browser-output/${stem}.sog`,
+        preview: 'plain',
+        supportText: 'Previews in Spark and PlayCanvas.',
+        optionLabels: ['SH iterations']
+    },
+    {
+        key: 'sog',
+        label: 'SOG asset set',
+        family: 'Multi-file SOG packaging',
+        buildFilename: () => 'browser-output/meta.json',
+        preview: 'asset-files',
+        previewEntry: 'browser-output/meta.json',
+        supportText: 'Writes a single-resolution multi-file SOG asset set (entry file: meta.json). This does not generate extra LOD levels and is not an SPZ format. Previews in PlayCanvas.',
+        optionLabels: ['SH iterations']
+    },
+    {
+        key: 'lod',
+        label: 'LOD bundle',
+        family: 'Multi-file LOD packaging (SOG chunk payloads)',
+        buildFilename: () => 'browser-output/lod-meta.json',
+        preview: 'bundle',
+        supportText: 'Generates multiple LOD levels using the ratios above, then writes a multi-file LOD bundle (entry file: lod-meta.json). This is not an SPZ format, so SPZ version does not apply. Previews in Spark and PlayCanvas.',
+        optionLabels: ['LOD ratios', 'SH iterations', 'Chunk size', 'Chunk extent', 'Pre-decimate to']
+    },
+    {
+        key: 'glb',
+        label: '.glb',
+        family: 'Single-file export format',
+        buildFilename: (stem) => `browser-output/${stem}.glb`,
+        preview: 'none',
+        supportText: 'Exports correctly, but the embedded viewers do not preview GLB here.',
+        optionLabels: ['No extra format options.']
+    },
+    {
+        key: 'csv',
+        label: '.csv',
+        family: 'Single-file export format',
+        buildFilename: (stem) => `browser-output/${stem}.csv`,
+        preview: 'none',
+        supportText: 'Exports correctly as tabular data, but the viewers do not preview CSV.',
+        optionLabels: ['No extra format options.']
+    },
+    {
+        key: 'html-bundle',
+        label: '.html',
+        family: 'Single-file export format',
+        buildFilename: (stem) => `browser-output/${stem}.html`,
+        preview: 'none',
+        supportText: 'Exports correctly as an HTML bundle, but the embedded viewers do not run it inline.',
+        optionLabels: ['SH iterations']
+    },
+    {
+        key: 'voxel',
+        label: '.voxel.json',
+        family: 'Single-file export format',
+        buildFilename: (stem) => `browser-output/${stem}.voxel.json`,
+        preview: 'none',
+        supportText: 'Exports correctly as voxel data, but the viewers do not preview voxel JSON.',
+        optionLabels: ['No extra format options.']
+    }
+];
+const outputTargetMap = new Map(outputTargets.map((target) => [target.key, target]));
+const defaultButtonLabels = {
+    convert: convertButton.textContent,
+    run: runButton.textContent,
+    sample: sampleButton.textContent
+};
 
 const state = {
     sourceName: null,
@@ -161,6 +272,7 @@ const updateProgressUi = () => {
     progressElapsed.textContent = formatDuration(progressState.elapsedMs);
     progressRemaining.textContent = progressState.remainingMs === null ? '--:--' : formatDuration(progressState.remainingMs);
     progressMode.textContent = progressState.runMode;
+    progressSpinner.hidden = !progressState.active;
 
     testState.progressPercent = progressState.percent;
     testState.progressElapsedMs = progressState.elapsedMs;
@@ -168,6 +280,15 @@ const updateProgressUi = () => {
     testState.progressStage = progressState.stage;
     testState.progressDetail = progressState.detail;
     testState.progressMode = progressState.runMode;
+
+    updateBusyUi();
+};
+
+const updateBusyUi = () => {
+    viewerDropZone.setAttribute('aria-busy', progressState.active ? 'true' : 'false');
+    convertButton.textContent = progressState.active && progressState.runMode === 'Converting' ? 'Converting...' : defaultButtonLabels.convert;
+    runButton.textContent = progressState.active && progressState.runMode === 'Generating' ? 'Generating...' : defaultButtonLabels.run;
+    sampleButton.textContent = progressState.active && progressState.runMode === 'Loading' ? 'Loading...' : defaultButtonLabels.sample;
 };
 
 const recomputeProgress = () => {
@@ -407,6 +528,34 @@ const progressTracker = {
 
 const isSparkPreviewableSource = (name) => /\.(ply|splat|ksplat|spz|sog)$/i.test(name);
 const isBundleZipFile = (name) => /\.zip$/i.test(name);
+const isPlayCanvasPreviewableSource = (name) => /\.(ply|sog)$/i.test(name);
+
+const slugifyStem = (name) => {
+    const normalized = name.replaceAll("\\", "/").split("/").pop() || name;
+    const withoutExtension = normalized
+        .replace(/\.compressed\.ply$/i, '')
+        .replace(/\.voxel\.json$/i, '')
+        .replace(/\.[^.]+$/i, '');
+    const slug = withoutExtension
+        .trim()
+        .toLowerCase()
+        .replace(/[^a-z0-9]+/g, '-')
+        .replace(/^-+|-+$/g, '');
+    return slug || 'output';
+};
+
+const getWriteOptions = () => ({
+    iterations: Math.max(1, Number(iterationsInput.value) || 10),
+    lodSelect: [],
+    unbundled: false,
+    lodChunkCount: Math.max(1, Number(chunkCountInput.value) || 512),
+    lodChunkExtent: Math.max(1, Number(chunkExtentInput.value) || 16),
+    lodGenerateRatios: parseRatios(),
+    lodPreDecimateCount: parsePreDecimateCount() ?? undefined,
+    spzVersion: Number(spzVersionSelect.value) === 3 ? 3 : 4
+});
+
+const getSelectedOutputTarget = () => outputTargetMap.get(outputFormatSelect.value) ?? outputTargets[0];
 
 const syncTestState = () => {
     testState.sourceName = state.sourceName;
@@ -483,6 +632,7 @@ const renderFiles = () => {
         item.textContent = 'No files generated yet.';
         filesList.appendChild(item);
         outputValue.textContent = '-';
+        filesSummary.textContent = 'No files generated yet.';
         zipButton.disabled = true;
         state.archiveBytes = null;
         syncTestState();
@@ -518,7 +668,9 @@ const renderFiles = () => {
         filesList.appendChild(item);
     });
 
-    outputValue.textContent = `${state.files.length} files / ${formatBytes(totalBytes)}`;
+    const archiveSummary = state.archiveBytes ? ` / zip ${formatBytes(state.archiveBytes.byteLength)}` : '';
+    outputValue.textContent = `${state.files.length} files / ${formatBytes(totalBytes)}${archiveSummary}`;
+    filesSummary.textContent = `${state.files.length} files, ${formatBytes(totalBytes)} total${archiveSummary}`;
     zipButton.disabled = false;
     syncTestState();
 };
@@ -540,6 +692,27 @@ const updateSourceSummary = () => {
     syncTestState();
 };
 
+const loadPlainPreview = async (bytes, name) => {
+    const previewNotes = [];
+
+    try {
+        await sparkPreview.loadSourceBytes(bytes, name);
+    } catch (error) {
+        sparkPreview.clear();
+        previewNotes.push(`Spark preview unavailable for ${name}: ${error instanceof Error ? error.message : String(error)}`);
+    }
+
+    if (isPlayCanvasPreviewableSource(name)) {
+        await playcanvasPreview.loadFileBytes(bytes, name);
+    } else {
+        playcanvasPreview.clear();
+    }
+
+    if (previewNotes.length > 0) {
+        appendLog(`${previewNotes.join('\n')}\n`);
+    }
+};
+
 const parseRatios = () => {
     return normalizeLodRatios(ratiosInput.value
         .split(',')
@@ -558,6 +731,64 @@ const parsePreDecimateCount = () => {
     }
     const normalized = Math.round(value);
     return normalized > 0 ? normalized : null;
+};
+
+const populateOutputFormats = () => {
+    outputFormatSelect.replaceChildren();
+    const sampleStem = 'scene';
+
+    for (const target of outputTargets) {
+        try {
+            const filename = target.buildFilename(sampleStem);
+            const outputFormat = getOutputFormat(filename, {
+                iterations: 10,
+                lodSelect: [],
+                unbundled: false,
+                lodChunkCount: 512,
+                lodChunkExtent: 16
+            });
+            if (outputFormat !== target.key) {
+                continue;
+            }
+
+            const option = document.createElement('option');
+            option.value = target.key;
+            option.textContent = target.label;
+            outputFormatSelect.appendChild(option);
+        } catch {
+            // Skip formats the current browser build does not expose.
+        }
+    }
+
+    if (outputFormatSelect.options.length > 0) {
+        const hasSpzOption = [...outputFormatSelect.options].some((option) => option.value === 'spz');
+        if (hasSpzOption) {
+            outputFormatSelect.value = 'spz';
+        } else {
+            outputFormatSelect.selectedIndex = 0;
+        }
+    }
+};
+
+const updateConversionUi = () => {
+    const target = getSelectedOutputTarget();
+    const noSource = !state.sourceDescriptor;
+    const sourceIsBundle = state.sourceDescriptor?.kind === 'bundleZip';
+    const previewText = target.supportText;
+    formatOptionsList.replaceChildren();
+    for (const optionLabel of target.optionLabels ?? []) {
+        const item = document.createElement('li');
+        item.textContent = optionLabel;
+        formatOptionsList.appendChild(item);
+    }
+
+    formatIdentityValue.textContent = target.family ?? 'Output format';
+    spzVersionLabel.hidden = target.key !== 'spz';
+    spzVersionSelect.disabled = target.key !== 'spz';
+    convertButton.disabled = noSource || sourceIsBundle;
+    conversionHint.textContent = sourceIsBundle ?
+        'Loaded bundles are already packaged; choose a plain source file to convert it into another format.' :
+        previewText;
 };
 
 const callWorker = (type, payload, transfer = []) => {
@@ -590,6 +821,16 @@ worker.addEventListener('message', ({ data }) => {
     }
 
     if (data.type === 'generation-complete') {
+        const pending = pendingRequests.get(data.requestId);
+        if (!pending) {
+            return;
+        }
+        pendingRequests.delete(data.requestId);
+        pending.resolve(data);
+        return;
+    }
+
+    if (data.type === 'conversion-complete') {
         const pending = pendingRequests.get(data.requestId);
         if (!pending) {
             return;
@@ -678,16 +919,136 @@ const setSourceDescriptor = async () => {
         appendLog(`Loaded bundle ${inspected.sourceName} (${files.length} files)\n`);
         setState('Ready');
         finishProgressRun(`Loaded bundle ${inspected.sourceName}`);
+        updateConversionUi();
         return;
     }
 
     if (state.sourceDescriptor.kind === 'file' && isSparkPreviewableSource(state.sourceDescriptor.name)) {
         const previewBytes = new Uint8Array(await state.sourceDescriptor.file.arrayBuffer());
-        await sparkPreview.loadSourceBytes(previewBytes, state.sourceDescriptor.name);
+        await loadPlainPreview(previewBytes, state.sourceDescriptor.name);
     }
     appendLog(`Loaded ${inspected.sourceName} (${inspected.sourceRows?.toLocaleString?.() ?? '-'} rows)\n`);
     setState('Ready');
     finishProgressRun(`Loaded ${inspected.sourceName} (${inspected.sourceRows?.toLocaleString?.() ?? '-'} rows)`);
+    updateConversionUi();
+};
+
+const previewConversionResult = async (target, files, archiveName) => {
+    if (target.preview === 'bundle') {
+        await applyBundleFiles(files, archiveName);
+        return;
+    }
+
+    state.files = files.map(({ name, bytes }) => ({ name, bytes }));
+    state.archiveName = archiveName;
+    state.archiveBytes = buildArchive(state.files);
+    renderFiles();
+
+    if (target.preview === 'plain' && files.length === 1) {
+        await loadPlainPreview(files[0].bytes, files[0].name);
+        return;
+    }
+
+    if (target.preview === 'asset-files' && target.previewEntry) {
+        sparkPreview.clear();
+        await playcanvasPreview.loadAssetFiles(files, target.previewEntry);
+        return;
+    }
+
+    sparkPreview.clear();
+    playcanvasPreview.clear();
+    appendLog(`Preview unavailable for ${target.label}; download from Output Files below.\n`);
+};
+
+const convertCurrentSource = async () => {
+    if (!state.sourceDescriptor) {
+        throw new Error('Pick a source first.');
+    }
+    if (state.sourceDescriptor.kind === 'bundleZip') {
+        throw new Error('Loaded bundles can be previewed directly but cannot be converted.');
+    }
+
+    clearLog();
+    state.files = [];
+    state.archiveBytes = null;
+    renderFiles();
+
+    const target = getSelectedOutputTarget();
+    const writeOptions = getWriteOptions();
+    const stem = slugifyStem(state.sourceDescriptor.name);
+    const outputFilename = target.buildFilename(stem);
+    const outputFormat = getOutputFormat(outputFilename, writeOptions);
+    const generatingLod = outputFormat === 'lod';
+
+    setState(generatingLod ? 'Generating' : 'Converting');
+    beginProgressRun({
+        runMode: generatingLod ? 'Generating' : 'Converting',
+        stage: generatingLod ? 'Preparing' : 'Converting',
+        detail: generatingLod ? 'Preparing LOD conversion job' : `Preparing ${target.label} conversion`,
+        decimateExpected: generatingLod ? estimateLodDecimateIterations(state.sourceRows ?? 0, writeOptions.lodGenerateRatios ?? [], writeOptions.lodPreDecimateCount ?? null) : 0
+    });
+
+    let source;
+    let transfer = [];
+    if (state.sourceDescriptor.kind === 'sample') {
+        source = {
+            kind: 'sample',
+            name: state.sourceDescriptor.name
+        };
+    } else {
+        const bytes = new Uint8Array(await state.sourceDescriptor.file.arrayBuffer());
+        source = {
+            kind: 'file',
+            name: state.sourceDescriptor.name,
+            bytes
+        };
+        transfer = [bytes.buffer];
+    }
+
+    const result = await callWorker('convert-source', {
+        source,
+        outputFilename,
+        outputFormat,
+        options: writeOptions
+    }, transfer);
+
+    state.sourceName = result.sourceName;
+    state.sourceRows = result.sourceRows;
+    updateSourceSummary();
+
+    const archiveName = `${slugifyStem(result.sourceName)}-${target.key}.zip`;
+    await previewConversionResult(target, result.files, archiveName);
+    setState('Done');
+    finishProgressRun(
+        generatingLod ?
+            `Generated ${result.files.length} files from ${result.workingRows?.toLocaleString?.() ?? result.sourceRows?.toLocaleString?.() ?? '-'} working rows` :
+            `Converted ${result.sourceName} to ${target.label}`
+    );
+};
+
+const loadSourceFile = async (file) => {
+    runButton.disabled = true;
+    convertButton.disabled = true;
+    sampleButton.disabled = true;
+    state.sourceDescriptor = {
+        kind: isBundleZipFile(file.name) ? 'bundleZip' : 'file',
+        name: file.name,
+        file
+    };
+
+    try {
+        await setSourceDescriptor(state.sourceDescriptor);
+    } catch (error) {
+        clearLog();
+        appendLog(`${error instanceof Error ? error.message : String(error)}\n`);
+        setState('Error');
+        failProgressRun(error instanceof Error ? error.message : String(error));
+    } finally {
+        fileInput.value = '';
+        runButton.disabled = false;
+        sampleButton.disabled = false;
+        updateConversionUi();
+    }
 };
 
 const run = async () => {
@@ -702,11 +1063,11 @@ const run = async () => {
     state.files = [];
     state.archiveBytes = null;
     renderFiles();
-    playcanvasPreview.clear();
     setState('Generating');
 
-    const ratios = parseRatios();
-    const preDecimateCount = parsePreDecimateCount();
+    const writeOptions = getWriteOptions();
+    const ratios = writeOptions.lodGenerateRatios ?? [];
+    const preDecimateCount = writeOptions.lodPreDecimateCount ?? null;
     beginProgressRun({
         runMode: 'Generating',
         stage: 'Preparing',
@@ -735,9 +1096,9 @@ const run = async () => {
     const result = await callWorker('generate-lod-bundle', {
         source,
         ratios,
-        iterations: Math.max(1, Number(iterationsInput.value) || 10),
-        chunkCount: Math.max(1, Number(chunkCountInput.value) || 512),
-        chunkExtent: Math.max(1, Number(chunkExtentInput.value) || 16),
+        iterations: writeOptions.iterations,
+        chunkCount: writeOptions.lodChunkCount,
+        chunkExtent: writeOptions.lodChunkExtent,
         preDecimateCount
     }, transfer);
 
@@ -751,6 +1112,7 @@ const run = async () => {
 
 sampleButton.addEventListener('click', async () => {
     runButton.disabled = true;
+    convertButton.disabled = true;
     sampleButton.disabled = true;
     state.sourceDescriptor = {
         kind: 'sample',
@@ -767,6 +1129,7 @@ sampleButton.addEventListener('click', async () => {
     } finally {
         runButton.disabled = false;
         sampleButton.disabled = false;
+        updateConversionUi();
     }
 });
 
@@ -775,30 +1138,12 @@ fileInput.addEventListener('change', async (event) => {
     if (!file) {
         return;
     }
-
-    runButton.disabled = true;
-    sampleButton.disabled = true;
-    state.sourceDescriptor = {
-        kind: isBundleZipFile(file.name) ? 'bundleZip' : 'file',
-        name: file.name,
-        file
-    };
-
-    try {
-        await setSourceDescriptor(state.sourceDescriptor);
-    } catch (error) {
-        clearLog();
-        appendLog(`${error instanceof Error ? error.message : String(error)}\n`);
-        setState('Error');
-        failProgressRun(error instanceof Error ? error.message : String(error));
-    } finally {
-        runButton.disabled = false;
-        sampleButton.disabled = false;
-    }
+    await loadSourceFile(file);
 });
 
 runButton.addEventListener('click', async () => {
     runButton.disabled = true;
+    convertButton.disabled = true;
     sampleButton.disabled = true;
 
     try {
@@ -810,12 +1155,74 @@ runButton.addEventListener('click', async () => {
     } finally {
         runButton.disabled = false;
         sampleButton.disabled = false;
+        updateConversionUi();
+    }
+});
+
+convertButton.addEventListener('click', async () => {
+    runButton.disabled = true;
+    convertButton.disabled = true;
+    sampleButton.disabled = true;
+
+    try {
+        await convertCurrentSource();
+    } catch (error) {
+        appendLog(`${error instanceof Error ? error.message : String(error)}\n`);
+        setState('Error');
+        failProgressRun(error instanceof Error ? error.message : String(error));
+    } finally {
+        runButton.disabled = false;
+        sampleButton.disabled = false;
+        updateConversionUi();
+    }
+});
+
+outputFormatSelect.addEventListener('change', updateConversionUi);
+spzVersionSelect.addEventListener('change', updateConversionUi);
+
+const setDropActive = (active) => {
+    viewerDropZone.classList.toggle('isActive', active);
+};
+
+for (const eventName of ['dragenter', 'dragover']) {
+    viewerDropZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        setDropActive(true);
+    });
+}
+
+for (const eventName of ['dragleave', 'dragend']) {
+    viewerDropZone.addEventListener(eventName, (event) => {
+        event.preventDefault();
+        if (event.target === viewerDropZone) {
+            setDropActive(false);
+        }
+    });
+}
+
+viewerDropZone.addEventListener('drop', async (event) => {
+    event.preventDefault();
+    setDropActive(false);
+    const [file] = [...(event.dataTransfer?.files ?? [])];
+    if (!file) {
+        return;
+    }
+    await loadSourceFile(file);
+});
+
+viewerDropZone.addEventListener('click', () => fileInput.click());
+viewerDropZone.addEventListener('keydown', (event) => {
+    if (event.key === 'Enter' || event.key === ' ') {
+        event.preventDefault();
+        fileInput.click();
     }
 });
 
 renderFiles();
 updateSourceSummary();
 resetProgress();
+populateOutputFormats();
+updateConversionUi();
 appendLog(`Loaded browser build v${version}\n`);
 
 zipButton.addEventListener("click", () => {
