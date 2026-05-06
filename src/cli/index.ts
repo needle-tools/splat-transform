@@ -767,6 +767,7 @@ GENERAL
         --mem                               Show peak memory in progress output
         --tty                               Interactive bar rendering (--no-tty to disable)
     -w, --overwrite                         Overwrite output file if it exists
+        --spz-version      <3|4>            SPZ format version to write. Default: 4
 
 GPU (used by SOG compression and GPU voxelization: --filter-cluster, --filter-floaters, .voxel.json output)
     -L, --list-gpus                         List available GPU adapters and exit
