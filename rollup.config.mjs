@@ -166,5 +166,4 @@ const cli = {
     cache: false
 };
 
-export default [worker, esm, cjs, cli];
 export default [worker, esm, cjs, browser, cli];
