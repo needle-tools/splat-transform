@@ -106,11 +106,6 @@ self.onmessage = async ({ data }) => {
 
         if (type === 'generate-lod-bundle') {
             const { name, table } = await loadSourceTable(data.source);
-            const generation = await generateLodDataTable({
-                source: table,
-                ratios: data.ratios,
-                preDecimateCount: data.preDecimateCount ?? null
-            });
             const outputFs = new MemoryFileSystem();
             const options = {
                 iterations: data.iterations,
@@ -122,11 +117,24 @@ self.onmessage = async ({ data }) => {
                 lodPreDecimateCount: data.preDecimateCount ?? undefined
             };
             const filename = 'browser-output/lod-meta.json';
+            const lodGenerationMode = data.lodGenerationMode === 'manual' ? 'manual' : 'official';
+            let workingRows = null;
+            let outputTable = table;
+
+            if (lodGenerationMode === 'manual') {
+                const generation = await generateLodDataTable({
+                    source: table,
+                    ratios: data.ratios,
+                    preDecimateCount: data.preDecimateCount ?? null
+                });
+                workingRows = generation.workingSource.numRows;
+                outputTable = generation.dataTable;
+            }
 
             await writeFile({
                 filename,
                 outputFormat: getOutputFormat(filename, options),
-                dataTable: generation.dataTable,
+                dataTable: outputTable,
                 options
             }, outputFs);
 
@@ -138,8 +146,8 @@ self.onmessage = async ({ data }) => {
                 requestId,
                 sourceName: name,
                 sourceRows: table.numRows,
-                workingRows: generation.workingSource.numRows,
-                outputRows: generation.dataTable.numRows,
+                workingRows,
+                outputRows: outputTable.numRows,
                 files: payload
             }, { transfer: transfers });
             return;
@@ -152,11 +160,12 @@ self.onmessage = async ({ data }) => {
                 ...readOptions,
                 ...data.options
             };
+            const lodGenerationMode = data.lodGenerationMode === 'manual' ? 'manual' : 'official';
 
             let dataTable = table;
             let workingRows = null;
 
-            if (data.outputFormat === 'lod' && !dataTable.hasColumn('lod')) {
+            if (data.outputFormat === 'lod' && lodGenerationMode === 'manual' && !dataTable.hasColumn('lod')) {
                 const generation = await generateLodDataTable({
                     source: table,
                     ratios: options.lodGenerateRatios ?? [],

@@ -19,6 +19,7 @@ test("browser demo generates a downloadable LOD zip", async ({ page }) => {
   });
 
   await page.goto("/demo/browser-lod/");
+  await expect(page.locator("#lodGenerationOfficialButton")).toHaveAttribute("aria-pressed", "true");
 
   await page.getByRole("button", { name: "Load Grid Sample" }).click();
   await expect
@@ -44,6 +45,7 @@ test("browser demo generates a downloadable LOD zip", async ({ page }) => {
 
   const demoState = await page.evaluate(() => globalThis.__browserLodDemoState);
   expect(demoState.sourceName).toBe("Generated grid sample");
+  expect(demoState.lodGenerationMode).toBe("official");
   expect(demoState.outputFiles).toBeGreaterThan(0);
   expect(demoState.outputBytes).toBeGreaterThan(0);
   expect(demoState.archiveBytes).toBeGreaterThan(0);
@@ -150,6 +152,29 @@ test("browser demo previews the generated grid sample before bundle generation",
   expect(demoState.sparkBundleKind).toBe("plain");
   expect(demoState.sparkMode).toBe("original");
   expect(demoState.playcanvasBundlePath).toBe("browser-output/generated-grid-sample.ply");
+});
+
+test("browser demo can switch to the manual LOD generation path", async ({ page }) => {
+  await page.goto("/demo/browser-lod/");
+
+  await page.getByRole("button", { name: "Manual" }).click();
+  await expect(page.locator("#lodGenerationManualButton")).toHaveAttribute("aria-pressed", "true");
+
+  await page.getByRole("button", { name: "Load Grid Sample" }).click();
+  await expect
+    .poll(() => page.evaluate(() => globalThis.__browserLodDemoState?.state))
+    .toBe("Ready");
+
+  await page.getByRole("button", { name: "Generate LOD Bundle" }).click();
+  await expect
+    .poll(() => page.evaluate(() => globalThis.__browserLodDemoState?.state), {
+      timeout: 60_000,
+    })
+    .toBe("Done");
+
+  const demoState = await page.evaluate(() => globalThis.__browserLodDemoState);
+  expect(demoState.lodGenerationMode).toBe("manual");
+  expect(demoState.outputFiles).toBeGreaterThan(0);
 });
 
 test("browser demo previews the original file and keeps it selectable after generation", async ({

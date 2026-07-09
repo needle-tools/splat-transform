@@ -137,6 +137,13 @@
                         <h2>Generate LOD Bundle</h2>
                     </div>
                     <div class="controls">
+                        <label class="segmentedField">
+                            <span>Generation path</span>
+                            <div class="segmentedControl" id="lodGenerationModeControl" role="group" aria-label="LOD generation path">
+                                <button id="lodGenerationOfficialButton" type="button" class="segmentButton isActive" data-mode="official" aria-pressed="true">Official</button>
+                                <button id="lodGenerationManualButton" type="button" class="segmentButton" data-mode="manual" aria-pressed="false">Manual</button>
+                            </div>
+                        </label>
                         <label>
                             <span>LOD ratios</span>
                             <input id="ratiosInput" type="text" value="1,0.5,0.25,0.125">

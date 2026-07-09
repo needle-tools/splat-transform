@@ -30,6 +30,9 @@ const iterationsInput = document.querySelector('#iterationsInput');
 const chunkCountInput = document.querySelector('#chunkCountInput');
 const chunkExtentInput = document.querySelector('#chunkExtentInput');
 const preDecimateInput = document.querySelector('#preDecimateInput');
+const lodGenerationModeControl = document.querySelector('#lodGenerationModeControl');
+const lodGenerationOfficialButton = document.querySelector('#lodGenerationOfficialButton');
+const lodGenerationManualButton = document.querySelector('#lodGenerationManualButton');
 const outputFormatSelect = document.querySelector('#outputFormatSelect');
 const formatIdentityValue = document.querySelector('#formatIdentityValue');
 const spzVersionLabel = document.querySelector('#spzVersionLabel');
@@ -180,6 +183,7 @@ const testState = globalThis.__browserLodDemoState = {
     progressStage: 'Idle',
     progressDetail: 'Choose a source to begin.',
     progressMode: 'Waiting',
+    lodGenerationMode: 'official',
     sparkLoaded: false,
     sparkBundleKind: null,
     sparkMode: null,
@@ -263,6 +267,8 @@ const progressState = {
     currentWritingName: null,
     timerId: null
 };
+
+let lodGenerationMode = 'official';
 
 const updateProgressUi = () => {
     progressStage.textContent = progressState.stage;
@@ -557,6 +563,15 @@ const getWriteOptions = () => ({
 
 const getSelectedOutputTarget = () => outputTargetMap.get(outputFormatSelect.value) ?? outputTargets[0];
 
+const updateLodGenerationModeUi = () => {
+    for (const button of [lodGenerationOfficialButton, lodGenerationManualButton]) {
+        const active = button.dataset.mode === lodGenerationMode;
+        button.classList.toggle('isActive', active);
+        button.setAttribute('aria-pressed', active ? 'true' : 'false');
+    }
+    testState.lodGenerationMode = lodGenerationMode;
+};
+
 const syncTestState = () => {
     testState.sourceName = state.sourceName;
     testState.sourceRows = state.sourceRows;
@@ -570,6 +585,7 @@ const syncTestState = () => {
     testState.progressStage = progressState.stage;
     testState.progressDetail = progressState.detail;
     testState.progressMode = progressState.runMode;
+    testState.lodGenerationMode = lodGenerationMode;
     Object.assign(testState, sparkPreview.getState());
     Object.assign(testState, {
         playcanvasLoaded: playcanvasPreview.getState().loaded,
@@ -714,6 +730,11 @@ const loadPlainPreview = async (bytes, name) => {
     }
 };
 
+const describeLodGenerationMode = () =>
+    lodGenerationMode === 'official' ?
+        'Official path: lets splat-transform generate LODs inside writeFile(lod-meta.json).' :
+        'Manual path: pre-generates the LOD-tagged table in the demo worker, then writes lod-meta.json.';
+
 const loadSamplePreview = async () => {
     const result = await callWorker('convert-source', {
         source: {
@@ -808,7 +829,7 @@ const updateConversionUi = () => {
     convertButton.disabled = noSource || sourceIsBundle;
     conversionHint.textContent = sourceIsBundle ?
         'Loaded bundles are already packaged; choose a plain source file to convert it into another format.' :
-        previewText;
+        (target.key === 'lod' ? `${previewText} ${describeLodGenerationMode()}` : previewText);
 };
 
 const callWorker = (type, payload, transfer = []) => {
@@ -1031,7 +1052,8 @@ const convertCurrentSource = async () => {
         source,
         outputFilename,
         outputFormat,
-        options: writeOptions
+        options: writeOptions,
+        lodGenerationMode
     }, transfer);
 
     state.sourceName = result.sourceName;
@@ -1043,7 +1065,7 @@ const convertCurrentSource = async () => {
     setState('Done');
     finishProgressRun(
         generatingLod ?
-            `Generated ${result.files.length} files from ${result.workingRows?.toLocaleString?.() ?? result.sourceRows?.toLocaleString?.() ?? '-'} working rows` :
+            `Generated ${result.files.length} files via ${lodGenerationMode === 'official' ? 'the official' : 'the manual'} path${result.workingRows ? ` from ${result.workingRows.toLocaleString()} working rows` : ''}` :
             `Converted ${result.sourceName} to ${target.label}`
     );
 };
@@ -1121,7 +1143,8 @@ const run = async () => {
         iterations: writeOptions.iterations,
         chunkCount: writeOptions.lodChunkCount,
         chunkExtent: writeOptions.lodChunkExtent,
-        preDecimateCount
+        preDecimateCount,
+        lodGenerationMode
     }, transfer);
 
     state.sourceName = result.sourceName;
@@ -1129,7 +1152,9 @@ const run = async () => {
     updateSourceSummary();
     await applyBundleFiles(result.files, state.archiveName);
     setState('Done');
-    finishProgressRun(`Generated ${state.files.length} files from ${result.workingRows.toLocaleString()} working rows`);
+    finishProgressRun(
+        `Generated ${state.files.length} files via ${lodGenerationMode === 'official' ? 'the official' : 'the manual'} path${result.workingRows ? ` from ${result.workingRows.toLocaleString()} working rows` : ''}`
+    );
 };
 
 sampleButton.addEventListener('click', async () => {
@@ -1201,6 +1226,15 @@ convertButton.addEventListener('click', async () => {
 
 outputFormatSelect.addEventListener('change', updateConversionUi);
 spzVersionSelect.addEventListener('change', updateConversionUi);
+lodGenerationModeControl.addEventListener('click', (event) => {
+    const button = event.target.closest('.segmentButton');
+    if (!button) {
+        return;
+    }
+    lodGenerationMode = button.dataset.mode === 'manual' ? 'manual' : 'official';
+    updateLodGenerationModeUi();
+    updateConversionUi();
+});
 
 const setDropActive = (active) => {
     viewerDropZone.classList.toggle('isActive', active);
@@ -1244,6 +1278,7 @@ renderFiles();
 updateSourceSummary();
 resetProgress();
 populateOutputFormats();
+updateLodGenerationModeUi();
 updateConversionUi();
 appendLog(`Loaded browser build v${version}\n`);
 

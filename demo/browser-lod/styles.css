@@ -270,6 +270,42 @@ button:hover,
     padding: 0.1rem 0;
 }
 
+.segmentedField {
+    min-width: 15rem;
+}
+
+.segmentedControl {
+    display: inline-grid;
+    grid-auto-flow: column;
+    grid-auto-columns: minmax(0, 1fr);
+    align-items: stretch;
+    min-height: 2.75rem;
+    padding: 0.2rem;
+    border-radius: 8px;
+    border: 1px solid rgba(173, 189, 214, 0.2);
+    background: rgba(18, 25, 35, 0.9);
+}
+
+.segmentButton {
+    min-height: 2.3rem;
+    border: 0;
+    border-radius: 6px;
+    background: transparent;
+    color: #aab7c8;
+    padding: 0.55rem 0.9rem;
+    font-weight: 600;
+}
+
+.segmentButton:hover {
+    border-color: transparent;
+    color: #d7dfeb;
+}
+
+.segmentButton.isActive {
+    background: rgba(122, 209, 255, 0.18);
+    color: #e8edf5;
+}
+
 .formatIdentity {
     min-width: 15rem;
     padding: 0.1rem 0;
