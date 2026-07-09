@@ -4,8 +4,7 @@ Run from the repo root:
 
 ```bash
 npm install
-npm run build
-npm run demo:serve
+npm run demo:dev
 ```
 
 Then open:
@@ -16,6 +15,7 @@ http://127.0.0.1:4173/demo/browser-lod/
 
 Notes:
 
+- `npm run demo:dev` builds the browser bundle first, then starts Vite.
 - The demo runs through Vite and imports the browser-specific ESM build from `dist/browser`.
 - SOG/WebP encoding uses the existing `lib/webp.wasm`.
 - The generated bundle is previewed immediately in an embedded Spark viewer, using the same zip-based LOD bundle runtime path as the standalone Spark viewer.

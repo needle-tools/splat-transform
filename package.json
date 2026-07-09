@@ -85,8 +85,8 @@
   },
   "scripts": {
     "build": "rollup -c && node -e \"fs=require('fs');fs.copyFileSync('dist/lib/index.d.ts','dist/lib/index.d.cts')\"",
-    "demo:dev": "vite --host 127.0.0.1 --port 4173 --strictPort",
-    "demo:serve": "npm run build && npm run demo:dev",
+    "demo:dev": "npm run build && vite --host 127.0.0.1 --port 4173 --strictPort",
+    "demo:serve": "npm run demo:dev",
     "docs": "typedoc",
     "lint": "eslint src",
     "lint:fix": "eslint src --fix",

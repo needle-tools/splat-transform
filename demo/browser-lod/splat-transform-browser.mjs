@@ -1,5 +1,5 @@
-export * from '/dist/browser/index.mjs';
+export * from '@playcanvas/splat-transform/browser';
 
-import { WebPCodec } from '/dist/browser/index.mjs';
+import { WebPCodec } from '@playcanvas/splat-transform/browser';
 
 WebPCodec.wasmUrl = '/lib/webp.wasm';
