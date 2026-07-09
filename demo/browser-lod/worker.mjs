@@ -23,6 +23,8 @@ logger.setRenderer({
 });
 logger.setVerbosity('normal');
 
+const sampleModuleUrl = new URL('../../generators/gen-grid.mjs', import.meta.url).href;
+
 const sampleParams = [
     { name: 'width', value: '64' },
     { name: 'height', value: '64' },
@@ -45,8 +47,8 @@ const readOptions = {
 const loadSourceTable = async (source) => {
     if (source.kind === 'sample') {
         const tables = await readFile({
-            filename: '/generators/gen-grid.mjs',
-            inputFormat: getInputFormat('/generators/gen-grid.mjs'),
+            filename: sampleModuleUrl,
+            inputFormat: 'mjs',
             options: readOptions,
             params: sampleParams,
             fileSystem: new MemoryReadFileSystem()
