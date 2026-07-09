@@ -90,6 +90,7 @@ const createSparkPreview = ({
         runtimeQuaternion: null,
         renderQuaternion: null,
         objectQuaternion: null,
+        placeholder: "Load a source to preview it.",
         error: null
     };
 
@@ -152,7 +153,8 @@ const createSparkPreview = ({
         lodMultiplierInput.disabled = !activeRuntime || state.mode === "original";
         lodBaseDistanceInput.value = activeRuntime ? String(activeRuntime.lodBaseDistance) : "5";
         lodMultiplierInput.value = activeRuntime ? String(activeRuntime.lodMultiplier) : "3";
-        emptyEl.hidden = true;
+        emptyEl.textContent = !state.error && !hasPreview ? state.placeholder : "";
+        emptyEl.hidden = !!state.error || hasPreview;
 
         const showingRuntime = !!activeRuntime && state.mode !== "original";
         statsEl.textContent = showingRuntime ? formatStats(activeRuntime.stats) : "";
@@ -274,6 +276,7 @@ const createSparkPreview = ({
         state.loaded = true;
         state.bundleKind = activeRuntime ? activeRuntime.bundle.kind : "plain";
         state.mode = "original";
+        state.placeholder = "";
         state.error = null;
         state.name = name;
         rebuildModeOptions();
@@ -306,6 +309,7 @@ const createSparkPreview = ({
 
         state.loaded = true;
         state.bundleKind = bundle.kind;
+        state.placeholder = "";
         state.stats = state.mode === "original" ? null : runtime.stats;
         state.activeMeshSplats = [];
         state.error = null;
@@ -314,13 +318,14 @@ const createSparkPreview = ({
         updateControls();
     };
 
-    const clear = () => {
+    const clear = (message = "Load a source to preview it.") => {
         disposeOriginalMesh();
         disposeRuntime();
         setError(null);
         state.loaded = false;
         state.bundleKind = null;
         state.mode = null;
+        state.placeholder = message;
         state.debugColorLods = false;
         state.lodBaseDistance = null;
         state.lodMultiplier = null;

@@ -74,7 +74,7 @@ test("browser demo generates a downloadable LOD zip", async ({ page }) => {
     .evaluateAll((options) =>
       options
         .map((option) => option.getAttribute("value"))
-        .filter((value) => value && value !== "auto"),
+        .filter((value) => value && value !== "auto" && value !== "original"),
     );
 
   for (const mode of lodModes) {
@@ -124,6 +124,32 @@ test("browser demo generates a downloadable LOD zip", async ({ page }) => {
   expect(Array.isArray(meta.filenames)).toBe(true);
   expect(meta.filenames.length).toBeGreaterThan(0);
   expect(consoleErrors).not.toContainEqual(expect.stringContaining("Invalid ply header"));
+});
+
+test("browser demo previews the generated grid sample before bundle generation", async ({
+  page,
+}) => {
+  await page.goto("/demo/browser-lod/");
+
+  await page.getByRole("button", { name: "Load Grid Sample" }).click();
+  await expect
+    .poll(() => page.evaluate(() => globalThis.__browserLodDemoState?.state))
+    .toBe("Ready");
+  await expect
+    .poll(() => page.evaluate(() => globalThis.__browserLodDemoState?.sparkLoaded), {
+      timeout: 60_000,
+    })
+    .toBe(true);
+  await expect
+    .poll(() => page.evaluate(() => globalThis.__browserLodDemoState?.playcanvasLoaded), {
+      timeout: 60_000,
+    })
+    .toBe(true);
+
+  const demoState = await page.evaluate(() => globalThis.__browserLodDemoState);
+  expect(demoState.sparkBundleKind).toBe("plain");
+  expect(demoState.sparkMode).toBe("original");
+  expect(demoState.playcanvasBundlePath).toBe("browser-output/generated-grid-sample.ply");
 });
 
 test("browser demo previews the original file and keeps it selectable after generation", async ({
@@ -188,7 +214,7 @@ test("browser demo can convert a source in-browser and preview the converted out
     .poll(() => page.evaluate(() => globalThis.__browserLodDemoState?.state))
     .toBe("Ready");
 
-  await page.selectOption("#outputFormatSelect", "spz");
+  await page.selectOption("#outputFormatSelect", "compressed-ply");
   await page.getByRole("button", { name: "Convert" }).click();
 
   await expect
@@ -206,10 +232,10 @@ test("browser demo can convert a source in-browser and preview the converted out
   expect(convertedState.outputFiles).toBeGreaterThan(0);
   expect(convertedState.sparkBundleKind).toBe("plain");
   expect(convertedState.playcanvasError).toBeNull();
-  expect(convertedState.playcanvasLoaded).toBe(false);
+  expect(convertedState.playcanvasLoaded).toBe(true);
 
   const fileNames = await page.locator("#filesList .fileName").allTextContents();
-  expect(fileNames.some((name) => name.endsWith(".spz"))).toBe(true);
+  expect(fileNames.some((name) => name.endsWith(".compressed.ply"))).toBe(true);
   await expect(page.locator("#filesSummary")).toContainText("zip");
   expect(consoleErrors).not.toContainEqual(expect.stringContaining("Invalid ply header"));
 });

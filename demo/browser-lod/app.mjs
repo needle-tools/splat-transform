@@ -80,7 +80,7 @@ const outputTargets = [
         family: 'Single-file SPZ format',
         buildFilename: (stem) => `browser-output/${stem}.spz`,
         preview: 'plain',
-        supportText: 'Previews in Spark directly. PlayCanvas does not preview plain SPZ in this demo.',
+        supportText: 'Previews in Spark when the embedded viewer supports the selected SPZ version. PlayCanvas does not preview plain SPZ in this demo.',
         optionLabels: ['SPZ version']
     },
     {
@@ -698,19 +698,39 @@ const loadPlainPreview = async (bytes, name) => {
     try {
         await sparkPreview.loadSourceBytes(bytes, name);
     } catch (error) {
-        sparkPreview.clear();
-        previewNotes.push(`Spark preview unavailable for ${name}: ${error instanceof Error ? error.message : String(error)}`);
+        const message = `Spark preview unavailable for ${name}: ${error instanceof Error ? error.message : String(error)}`;
+        sparkPreview.clear(message);
+        previewNotes.push(message);
     }
 
     if (isPlayCanvasPreviewableSource(name)) {
         await playcanvasPreview.loadFileBytes(bytes, name);
     } else {
-        playcanvasPreview.clear();
+        playcanvasPreview.clear(`PlayCanvas preview is not available for ${name} in this demo.`);
     }
 
     if (previewNotes.length > 0) {
         appendLog(`${previewNotes.join('\n')}\n`);
     }
+};
+
+const loadSamplePreview = async () => {
+    const result = await callWorker('convert-source', {
+        source: {
+            kind: 'sample',
+            name: state.sourceDescriptor.name
+        },
+        outputFilename: 'browser-output/generated-grid-sample.ply',
+        outputFormat: 'ply',
+        options: getWriteOptions()
+    });
+
+    const previewFile = result.files.find(({ name }) => /\.ply$/i.test(name));
+    if (!previewFile) {
+        throw new Error('Sample preview did not produce a previewable PLY file.');
+    }
+
+    await loadPlainPreview(previewFile.bytes, previewFile.name);
 };
 
 const parseRatios = () => {
@@ -923,7 +943,9 @@ const setSourceDescriptor = async () => {
         return;
     }
 
-    if (state.sourceDescriptor.kind === 'file' && isSparkPreviewableSource(state.sourceDescriptor.name)) {
+    if (state.sourceDescriptor.kind === 'sample') {
+        await loadSamplePreview();
+    } else if (isSparkPreviewableSource(state.sourceDescriptor.name)) {
         const previewBytes = new Uint8Array(await state.sourceDescriptor.file.arrayBuffer());
         await loadPlainPreview(previewBytes, state.sourceDescriptor.name);
     }

@@ -233,6 +233,7 @@ const createPlayCanvasPreview = ({
     const state = {
         loaded: false,
         bundlePath: null,
+        placeholder: "Load a previewable source to show it here.",
         error: null
     };
 
@@ -240,7 +241,7 @@ const createPlayCanvasPreview = ({
     let activeBundle = null;
 
     const syncState = () => {
-        statusEl.textContent = state.error ? state.error : (state.loaded ? `Loaded ${state.bundlePath}` : "");
+        statusEl.textContent = state.error ? state.error : (state.loaded ? `Loaded ${state.bundlePath}` : state.placeholder);
         onStateChange?.({ ...state });
     };
 
@@ -283,6 +284,7 @@ const createPlayCanvasPreview = ({
         activeToken += 1;
         state.loaded = false;
         state.bundlePath = normalizePath(entryName);
+        state.placeholder = "";
         state.error = null;
         syncState();
 
@@ -325,10 +327,11 @@ const createPlayCanvasPreview = ({
             }], name);
         },
 
-        clear() {
+        clear(message = "Load a previewable source to show it here.") {
             activeToken += 1;
             state.loaded = false;
             state.bundlePath = null;
+            state.placeholder = message;
             state.error = null;
             clearBundle();
             iframe.srcdoc = "";
